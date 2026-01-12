@@ -2,9 +2,9 @@
 
 ## 📌 Project Overview
 
-This project implements an **AI-powered message triage system** for a hospital setting. Incoming patient messages are automatically classified into categories such as **appointments, billing, reports, and complaints** using a machine learning model, and managed through a REST API built with FastAPI.
+This project implements an **AI-powered message triage system** for a hospital environment. Incoming patient messages are automatically classified into categories such as **appointments, billing, reports, and complaints** using a machine learning model, and managed through a REST API built with **FastAPI**.
 
-The system helps streamline hospital operations by routing messages efficiently and flagging low-confidence predictions for manual triage.
+The system persists tickets using **SQLite**, exposes clean REST endpoints, and flags low-confidence predictions for **manual triage**, simulating a real-world hospital support workflow.
 
 ---
 
@@ -12,8 +12,8 @@ The system helps streamline hospital operations by routing messages efficiently 
 
 * **Backend:** Python 3.10+, FastAPI, Uvicorn
 * **Machine Learning:** scikit-learn (TF-IDF + Logistic Regression)
-* **Storage:** In-memory (can be extended to SQLite)
-* **Serialization:** Pydantic
+* **Storage:** SQLite (via SQLAlchemy)
+* **Serialization & Validation:** Pydantic
 * **Model Persistence:** joblib
 
 ---
@@ -21,8 +21,8 @@ The system helps streamline hospital operations by routing messages efficiently 
 ## 📂 Project Structure
 
 ```
-ai-message-triage/
-├── app.py                  # FastAPI application
+tulu-health-assignment/
+├── app.py                  # FastAPI application (SQLite + ML)
 ├── train.py                # ML training script
 ├── dataset/
 │   └── messages.csv        # Synthetic dataset (100 rows)
@@ -41,7 +41,7 @@ ai-message-triage/
 
 ```cmd
 python -m venv .venv
-.venv\Scripts\activate  
+.venv\Scripts\activate      # Windows
 ```
 
 ### 2️⃣ Install dependencies
@@ -56,12 +56,11 @@ pip install -r requirements.txt
 python train.py
 ```
 
-This will:
+This step:
 
-* Train a TF-IDF + Logistic Regression classifier
-* Print per-class precision, recall, F1-score
-* Print **Macro-F1 score**
-* Save model artifacts to `/models`
+* Trains a TF-IDF + Logistic Regression classifier
+* Evaluates the model using per-class F1 and Macro-F1
+* Saves trained artifacts to the `models/` directory
 
 ### 4️⃣ Run the FastAPI server
 
@@ -69,7 +68,7 @@ This will:
 python -m uvicorn app:app --reload
 ```
 
-Server will start at:
+Server starts at:
 👉 [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
 ---
@@ -111,7 +110,7 @@ Response:
 ```json
 {
   "label": "appointment",
-  "confidence": 0.86
+  "confidence": 0.81
 }
 ```
 
@@ -138,14 +137,14 @@ Response:
   "from": "+971500000001",
   "text": "I have not received my medical report",
   "label": "reports",
-  "confidence": 0.82,
+  "confidence": 0.78,
   "status": "open",
   "created_at": "2026-01-12T10:00:00Z",
   "triage_required": false
 }
 ```
 
-📌 If `confidence < 0.7`, `triage_required` is set to `true`.
+📌 If `confidence < 0.7`, the system sets `"triage_required": true`.
 
 ---
 
@@ -194,42 +193,48 @@ Response:
 
 ## 🤖 Machine Learning Details
 
-* **Dataset:** 100 synthetic, balanced patient messages (25 per class)
-* **Vectorizer:** TF-IDF (unigrams + bigrams, min_df=2)
+* **Dataset:** 100 synthetic, balanced hospital messages (25 per class)
+* **Vectorizer:** TF-IDF (unigrams + bigrams, `min_df=2`)
 * **Classifier:** Logistic Regression
-* **Train/Test Split:** 80/20 (stratified)
+* **Train/Validation Split:** 80/20 (stratified)
 
-### 📊 Evaluation Metrics
+### 📊 Model Evaluation
 
-* Per-class Precision, Recall, F1-score
-* **Macro-F1 score** (primary metric)
-
-Example output:
+**Classification Report:**
 
 ```
-Appointment F1: 0.90
-Billing F1: 0.90
-Reports F1: 0.84
-Complaint F1: 0.92
-Macro F1: 0.89
+              precision    recall  f1-score   support
+
+ appointment       0.67      0.80      0.73         5
+ billing           1.00      0.80      0.89         5
+ complaint         0.75      0.60      0.67         5
+ reports           0.67      0.80      0.73         5
+
+ accuracy                               0.75        20
+ macro avg          0.77      0.75      0.75        20
+ weighted avg       0.77      0.75      0.75        20
 ```
 
-Macro-F1 is used to ensure **balanced performance across all classes**, since all message types are equally important.
+**Macro-F1 Score:** **0.753**
+
+📌 Macro-F1 is used as the primary metric to ensure **balanced performance across all message categories**, since all classes are equally important in hospital triage.
 
 ---
 
 ## 🧠 Design Notes
 
-* Model is trained offline and loaded once at API startup
-* Confidence scores are derived from prediction probabilities
+* ML model is trained offline and loaded once at API startup
+* TF-IDF + Logistic Regression chosen for interpretability and efficiency
+* Confidence scores derived from class probabilities
 * Low-confidence predictions are flagged for manual triage
-* In-memory storage used for simplicity (can be extended to SQLite)
+* SQLite ensures persistence across server restarts
+* Pydantic models are used for **both request validation and response serialization**
 
 ---
 
 ## ✅ Conclusion
 
-This project demonstrates an end-to-end **ML-powered backend system**, covering dataset creation, model training, evaluation, and real-time inference via REST APIs. It is fully runnable, modular, and easily extensible for production use.
+This project demonstrates a complete **end-to-end ML-powered backend system**, covering dataset creation, model training and evaluation, API design, persistence with SQLite, and robust serialization using Pydantic. The system is modular, reproducible, and aligned with real-world hospital message triage requirements.
 
 ---
 
